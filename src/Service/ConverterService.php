@@ -7,6 +7,9 @@
 
 namespace Converter\Service;
 
+use BadMethodCallException;
+use Exception;
+
 class ConverterService
 {
     protected const GET = 'get';
@@ -20,6 +23,7 @@ class ConverterService
     /**
      * ConverterService constructor.
      * @param object $object
+     * @throws Exception
      */
     public function __construct(object $object)
     {
@@ -33,6 +37,8 @@ class ConverterService
      */
     public function arrayToArrayOfObject(array $arrays, array $arrayOfObjects = []): array
     {
+        $this->checkInputData($arrays);
+
         $listOfMethods = $this->getListOfClassMethods();
 
         foreach ($arrays as $array) {
@@ -46,9 +52,12 @@ class ConverterService
      * @param array $arrayOfObjects
      * @param array $arrays
      * @return array
+     * @throws Exception
      */
     public function arrayOfObjectToArrays(array $arrayOfObjects, array $arrays = []): array
     {
+        $this->checkInputData($arrayOfObjects);
+
         $listOfMethods = $this->getListOfClassMethods(self::GET);
 
         foreach ($arrayOfObjects as $theObject) {
@@ -64,6 +73,8 @@ class ConverterService
      */
     public function arrayToObject(array $array): object
     {
+        $this->checkInputData($array);
+
         return $this->getObjectFromArray(
             $array,
             $this->getListOfClassMethods()
@@ -73,6 +84,7 @@ class ConverterService
     /**
      * @param object $object
      * @return array
+     * @throws Exception
      */
     public function objectToArray(object $object): array
     {
@@ -87,9 +99,12 @@ class ConverterService
      * @param array $listOfMethods
      * @param array $array
      * @return array
+     * @throws Exception
      */
     private function getArrayFromObject(object $object, array $listOfMethods, array $array = []): array
     {
+        $this->checkOfEquality2Object($object);
+
         foreach ($listOfMethods as $listOfMethod) {
             $key = strtolower(
                 str_replace(self::GET, '', $listOfMethod)
@@ -104,6 +119,7 @@ class ConverterService
      * @param array $array
      * @param array $listOfMethods
      * @return object
+     * @throws \BadMethodCallException
      */
     private function getObjectFromArray(array $array, array $listOfMethods): object
     {
@@ -112,7 +128,8 @@ class ConverterService
 
         foreach ($array as $key => $value) {
             $methodName = self::SET . ucfirst($key);
-            !$this->methodExistInClass($methodName, $listOfMethods) ?: $newObject->$methodName($value);
+            $this->checkIfMethodExistInClass($methodName, $listOfMethods);
+            $newObject->$methodName($value);
         }
 
         return $newObject;
@@ -142,5 +159,50 @@ class ConverterService
         });
 
         return $filterListOfMethods;
+    }
+
+    /**
+     * @param string $methodName
+     * @param array $listOfMethods
+     */
+    private function checkIfMethodExistInClass(string $methodName, array $listOfMethods): void
+    {
+        if (!$this->methodExistInClass($methodName, $listOfMethods)) {
+            throw new BadMethodCallException(
+                sprintf('Method %s does not exist in object %s', $methodName, get_class($this->object))
+            );
+        }
+    }
+
+    /**
+     * @param array $array
+     */
+    private function checkInputData(array $array): void
+    {
+        if (!$array) {
+            throw new \InvalidArgumentException('Input data does not exist');
+        }
+    }
+
+    /**
+     * @param object $object
+     * @throws Exception
+     */
+    private function checkOfEquality2Object(object $object): void
+    {
+        $inputObject = get_class_methods($object);
+        $defineObject = get_class_methods($this->object);
+        sort($inputObject);
+        sort($defineObject);
+
+        if ($inputObject !== $defineObject) {
+            throw new Exception (
+                sprintf(
+                    'Input object %s and define object %s does not equal',
+                    get_class($object),
+                    get_class($this->object)
+                )
+            );
+        }
     }
 }
