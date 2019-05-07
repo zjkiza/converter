@@ -1,0 +1,13 @@
+{
+  "description": "",
+  "authors": [
+    {
+      "name": "Zoran Jankovic, zjkiza "
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Converter\\": "src"
+    }
+  }
+}
